@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Steady</title>
+  <meta name="description" content="A calm daily checklist for movement, food and water.">
+  <meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161816" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Steady">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <main id="view"></main>
+
+  <nav id="tabs" aria-label="Main">
+    <button data-act="tab" data-tab="today">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.500 12.300l2.400 2.400 4.600-5"/></svg><span>Today</span>
+    </button>
+    <button data-act="tab" data-tab="workout">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6M7.500 6.500v11M16.500 6.500v11M20 9v6M7.500 12h9"/></svg><span>Workout</span>
+    </button>
+    <button data-act="tab" data-tab="progress">
+      <svg viewBox="0 0 24 24"><path d="M4 17l5-5 3.500 3.500L20 8"/><path d="M15 8h5v5"/></svg><span>Progress</span>
+    </button>
+    <button data-act="tab" data-tab="plan">
+      <svg viewBox="0 0 24 24"><path d="M6 4.500h12v15H6z"/><path d="M9 9h6M9 12.500h6M9 16h3.500"/></svg><span>Plan</span>
+    </button>
+    <button data-act="tab" data-tab="settings">
+      <svg viewBox="0 0 24 24"><path d="M5 7.500h14M5 12h14M5 16.500h14"/><circle cx="9" cy="7.500" r="2" class="knob"/><circle cx="15" cy="12" r="2" class="knob"/><circle cx="10.500" cy="16.500" r="2" class="knob"/></svg><span>Settings</span>
+    </button>
+  </nav>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
