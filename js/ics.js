@@ -1,6 +1,6 @@
 // Builds the reminder list and an .ics calendar file of recurring events.
 import { REMINDERS } from '../data/seed.js';
-import { workoutById, todayISO, addDays, dow, DAY_NAMES } from './logic.js';
+import { workoutById, todayISO, addDays, dow, DAY_NAMES, timeText } from './logic.js';
 
 const BYDAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 
@@ -9,15 +9,11 @@ const daysText = (days) =>
     : days.join() === '1,2,3,4,5' ? 'Weekdays'
     : days.map((d) => DAY_NAMES[d]).join(', ');
 
-const timeText = (t) => {
-  const [h, m] = t.split(':').map(Number);
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
-};
-
 // Expanded list: [{ id, title, time, days: [0..6], when }]
 export function reminderList(S) {
   const out = [];
-  for (const r of REMINDERS) {
+  for (const src of REMINDERS) {
+    const r = src.time.startsWith('rhythm.') ? { ...src, time: S.config.goals.rhythm[src.time.slice(7)] || '06:00' } : src;
     if (r.days === 'workout') {
       const byWorkout = {};
       S.config.weeklyPlan.forEach((p, day) => {

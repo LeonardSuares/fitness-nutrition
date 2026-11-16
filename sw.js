@@ -1,10 +1,10 @@
 // Offline support. Network first, so edits you deploy show up straight away;
 // the cached copy is used whenever the phone is offline.
-const CACHE = 'steady-v1';
+const CACHE = 'steady-v4';
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
-  'data/seed.js', 'data/motivation.js',
-  'js/app.js', 'js/core.js', 'js/store.js', 'js/logic.js', 'js/ics.js',
+  'data/seed.js', 'data/motivation.js', 'data/faith.js',
+  'js/app.js', 'js/core.js', 'js/store.js', 'js/logic.js', 'js/score.js', 'js/share.js', 'js/faith.js', 'js/roadmap.js', 'js/ics.js',
   'js/ui-today.js', 'js/ui-workout.js', 'js/ui-progress.js', 'js/ui-plan.js', 'js/ui-settings.js',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png',
 ];

@@ -1,6 +1,6 @@
 import { S, load, save } from './store.js';
 import { register, init, render, esc, toast } from './core.js';
-import { todayISO } from './logic.js';
+import { todayISO, weightPath } from './logic.js';
 import * as today from './ui-today.js';
 import * as workout from './ui-workout.js';
 import * as progress from './ui-progress.js';
@@ -17,7 +17,7 @@ const welcome = {
         <label class="opt">Your weight today (kg)
           <input id="start-kg" type="number" inputmode="decimal" step="0.1" value="${esc(S.config.profile.startWeightKg)}">
         </label>
-        <p class="muted">The goal is ${esc(S.config.target.weightKg)} kg, at a gentle pace. You can change it later in Settings.</p>
+        <p class="muted">The goal is ${esc(weightPath(S).pop()?.kg ?? '')} kg, at a gentle pace. You can change it later in Settings.</p>
       </section>
       <button class="btn primary big-btn" data-act="start">Start</button>
     </div>`,

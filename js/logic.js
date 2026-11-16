@@ -118,7 +118,21 @@ export const BADGES = [
   { id: 'w25', name: '25 workouts', icon: '🌟' },
   { id: 'kg1', name: 'First 1 kg lost', icon: '🍃' },
   { id: 'kg5', name: '5 kg lost', icon: '🏔️' },
+  { id: 'rise', name: 'Rise Again', icon: '🌅' },   // earned again after every comeback
+  // Saint badges.
+  { id: 'little', name: 'Little Way', by: 'St. Thérèse', icon: '🌸', how: 'Seven days in a row with any tap, however small' },
+  { id: 'pio', name: 'Pray, hope, and don’t worry', by: 'St. Padre Pio', icon: '🙏', how: 'Prayer seven days in a row' },
+  { id: 'avila', name: 'God alone is enough', by: 'St. Teresa of Avila', icon: '📖', how: 'Thirty days of Scripture reading' },
+  { id: 'sun', name: 'Brother Sun', by: 'St. Francis', icon: '☀️', how: 'Twelve morning workouts in one month' },
+  { id: 'jp2', name: 'Do not be afraid', by: 'St. John Paul II', icon: '🕊️', how: 'Your first weight milestone reached' },
 ];
+
+// Days in a row, ending on `d`, for which `test` holds.
+export function runTo(S, d, test) {
+  let n = 0;
+  for (let x = d; n < 400 && test(x); x = addDays(x, -1)) n++;
+  return n;
+}
 
 export function weightLost(S) {
   if (!S.weighIns.length) return 0;
@@ -138,8 +152,20 @@ export function awardBadges(S) {
     w25: n >= 25,
     kg1: lost >= 1,
     kg5: lost >= 5,
+    little: runTo(S, today, (x) => showedUp(S, x)) >= 7,
+    pio: runTo(S, today, (x) => !!S.days[x]?.checks?.prayer) >= 7,
+    avila: Object.values(S.days).filter((x) => x.checks?.scripture).length >= 30,
+    sun: (() => { let n = 0; for (let x = `${today.slice(0, 8)}01`; x <= today; x = addDays(x, 1)) if (workoutDone(S, x)) n++; return n >= 12; })(),
+    jp2: (() => { const m = weightPath(S)[1]; const w = sortedWeighIns(S); return !!(m && w.length && w[w.length - 1].kg <= m.kg && w[w.length - 1].date >= weightPath(S)[0].date); })(),
   };
   const fresh = [];
+  // Rise Again: the first tap after three or more quiet days.
+  S.rises ||= [];
+  if (!S.rises.includes(today) && showedUp(S, today) && gapBefore(S, today) >= RISE_GAP) {
+    S.rises.push(today);
+    S.badges.rise ||= today;
+    fresh.push(BADGES.find((b) => b.id === 'rise'));
+  }
   for (const b of BADGES) {
     if (earned[b.id] && !S.badges[b.id]) { S.badges[b.id] = today; fresh.push(b); }
   }
@@ -181,20 +207,52 @@ export function sortedWeighIns(S) {
   return [...S.weighIns].sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function pace(S) {
+// ── the year's goals ─────────────────────────────────────────────────────────
+export const quarterOf = (date) => Math.floor(parse(date).getMonth() / 3) + 1;
+
+// The weight path: the start point, then each milestone, in date order.
+export function weightPath(S) {
+  const g = S.config.goals.weight;
+  return [{ date: g.startDate, kg: g.startKg }, ...g.milestones]
+    .filter((p) => p.date && p.kg > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Where the path says the scale should be on a date; null before it starts.
+export function expectedKg(S, date) {
+  const p = weightPath(S);
+  if (!p.length || date < p[0].date) return null;
+  for (let i = 1; i < p.length; i++) {
+    if (date > p[i].date) continue;
+    const t = daysBetween(p[i - 1].date, date) / Math.max(1, daysBetween(p[i - 1].date, p[i].date));
+    return p[i - 1].kg + (p[i].kg - p[i - 1].kg) * t;
+  }
+  return p[p.length - 1].kg;
+}
+
+export function nextMilestone(S, date) {
+  const p = weightPath(S).slice(1);
+  return p.find((m) => m.date >= date) || null;
+}
+
+export const savingsTarget = (S) => S.config.goals.finance.quarters.reduce((a, b) => a + (Number(b) || 0), 0);
+
+export function pace(S, today = todayISO()) {
   const w = sortedWeighIns(S);
-  if (w.length < 2) return { text: 'Your first weigh-in is in. The line starts here.', expected: null };
-  const first = w[0], last = w[w.length - 1];
-  const { weightKg, date } = S.config.target;
-  const total = Math.max(1, daysBetween(first.date, date));
-  const t = Math.min(1, Math.max(0, daysBetween(first.date, last.date) / total));
-  const expected = first.kg + (weightKg - first.kg) * t;
+  const path = weightPath(S);
+  const goal = path[path.length - 1];
+  const next = nextMilestone(S, today);
+  if (!w.length || !goal) return { text: 'Your first weigh-in starts the line.', expected: null, next };
+  const last = w[w.length - 1];
+  const expected = expectedKg(S, last.date);
   let text;
-  if (last.kg <= weightKg) text = 'You reached your target. Well done, and steady on.';
+  if (last.kg <= goal.kg) text = 'You reached your target. Well done, and steady on.';
+  else if (today < path[0].date) text = `Warm-up. The path to ${goal.kg} kg starts on ${fmtDate(path[0].date, { day: 'numeric', month: 'long' })}.`;
+  else if (expected == null) text = 'The path has begun. Your next weigh-in puts you on it.';
   else if (last.kg < expected - 1.5) text = 'Ahead of pace. No need to rush, steady is the goal.';
   else if (last.kg <= expected + 0.3) text = 'On pace.';
   else text = "A little behind, and that's okay.";
-  return { text, expected };
+  return { text, expected, next };
 }
 
 export function weighInDue(S, today) {
@@ -218,6 +276,95 @@ export function weekStats(S, today) {
   }
   return { workouts, walks, waterAvg: water / n, checklistPct: total ? Math.round((ticked / total) * 100) : 0 };
 }
+
+// ── the six daily taps ───────────────────────────────────────────────────────
+export const MEAL_NAMES = ['Breakfast', 'Lunch', 'Dinner'];
+
+// '05:40' → '5:40 am'
+export const timeText = (t) => {
+  if (!/^\d{1,2}:\d{2}$/.test(t || '')) return t || '';
+  const [h, m] = t.split(':').map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+};
+
+export const inPlanYear = (S, d) => d.slice(0, 4) === String(S.config.goals.year);
+export const mondayOf = (d) => addDays(d, -((dow(d) + 6) % 7));
+
+// Morning workouts the plan asks for in the week of `d`; null in the warm-up.
+export function weeklyTarget(S, d) {
+  return inPlanYear(S, d) ? Number(S.config.goals.fitness.perWeek[quarterOf(d) - 1]) || null : null;
+}
+
+// Any logged session counts, any size, any time of day, and so does a walk.
+export function workoutDone(S, d) {
+  const day = S.days[d];
+  return !!(day?.checks?.workout || day?.walk || S.sessions.some((s) => s.date === d));
+}
+
+export function workoutsInWeek(S, d) {
+  let n = 0;
+  for (let x = mondayOf(d); x <= d; x = addDays(x, 1)) if (workoutDone(S, x)) n++;
+  return n;
+}
+
+// One value per meal: 0 not yet, 1 eaten, 2 eaten with protein.
+export function mealsFor(S, d) {
+  const m = S.days[d]?.meals || [];
+  return Array.from({ length: Number(S.config.goals.eating.meals) || 3 }, (_, i) => m[i] || 0);
+}
+export const mealName = (i) => MEAL_NAMES[i] || `Meal ${i + 1}`;
+export const waterGlasses = (S) => Number(S.config.goals.water?.glasses) || 12;
+
+export function coreFor(S, d) {
+  const g = S.config.goals, r = g.rhythm;
+  const day = S.days[d] || {};
+  const c = day.checks || {};
+  const plan = planFor(S, d);
+  const meals = mealsFor(S, d);
+  const wk = workoutsInWeek(S, d), tgt = weeklyTarget(S, d);
+  const what = plan.office ? `Walk${plan.bonus ? ` or ${plan.bonus.name.toLowerCase()}` : ''}`
+    : plan.rest ? 'Rest day, a walk counts' : plan.workout?.name || 'Any workout';
+  return [
+    { id: 'workout', time: timeText(r.workout), label: 'Morning workout', done: workoutDone(S, d),
+      cue: `${what} · ${tgt ? `${wk} of ${tgt} this week` : `${wk} this week`}`, workoutId: plan.workout?.id || null },
+    { id: 'prayer', time: timeText(r.prayer), label: 'Prayer', done: !!c.prayer },
+    { id: 'scripture', time: 'Daily', label: 'Scripture reading', cue: g.scripture.title, done: !!c.scripture },
+    { id: 'meals', label: `${meals.length} meals with protein`, done: meals.every((m) => m === 2), meals },
+    { id: 'water', label: 'Water', done: (day.water || 0) >= waterGlasses(S) },
+    { id: 'lights', time: timeText(r.lightsOut), label: 'Lights out', done: !!c.lights },
+  ];
+}
+
+// Any tap at all on a day counts as showing up.
+export function showedUp(S, d) {
+  if (S.sessions.some((s) => s.date === d) || S.weighIns.some((w) => w.date === d)) return true;
+  const day = S.days[d];
+  if (!day) return false;
+  return Object.values(day.checks || {}).some(Boolean) || (day.water || 0) > 0 || (day.meals || []).some(Boolean);
+}
+
+export function showedUpThisMonth(S, d) {
+  let n = 0;
+  for (let x = `${d.slice(0, 8)}01`; x <= d; x = addDays(x, 1)) if (showedUp(S, x)) n++;
+  return n;
+}
+
+// ── comeback ─────────────────────────────────────────────────────────────────
+// Quiet days right before `d`, back to the last day anything was logged.
+// 0 when nothing was logged before at all: a first day is not a comeback.
+export function gapBefore(S, d) {
+  const start = S.meta.startDate;
+  if (!start) return 0;
+  let n = 0;
+  for (let x = addDays(d, -1); x >= start; x = addDays(x, -1)) {
+    if (showedUp(S, x)) return n;
+    n++;
+  }
+  return 0;
+}
+export const RISE_GAP = 3;
+// RSV-2CE.
+export const RISE_VERSE = { text: 'for a righteous man falls seven times, and rises again; but the wicked are overthrown by calamity.', ref: 'Proverbs 24:16' };
 
 // ── motivation ───────────────────────────────────────────────────────────────
 // slot 0 = Today screen, slot 1 = workout-complete screen.

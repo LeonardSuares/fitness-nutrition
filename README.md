@@ -38,13 +38,15 @@ Data belongs to the home-screen app, separately from Safari. Use **Settings → 
 
 | What | Where |
 | --- | --- |
-| Checklists, weekly workout plan, workouts and exercises, office days, weigh-in day, target | In the app, under **Settings** |
+| 2027 goals (weight path, workouts a week, meals, water, savings, learning, Bible reading, daily rhythm, quarter themes) | In the app, **Settings → 2027 goals** and **Learning checklist**. Kept on the phone; savings amounts are never in this repo |
+| Extras, weekly workout plan, workouts and exercises, office days, weigh-in day | In the app, under **Settings** |
 | Starting values for all of the above | `SEED` in `data/seed.js` |
 | Dinner rotation, Sunday prep list, psyllium rules, protein cheat sheet, daily targets | `PLAN` in `data/seed.js` |
 | Calendar reminders (titles and times) | `REMINDERS` in `data/seed.js` |
-| Quotes and scripture verses | `data/motivation.js` |
+| Encouraging lines and RSV-2CE verses | `data/motivation.js` (keep verse wording exact, under 500 verses) |
+| Saint of the month, Bible books, RSV-2CE notice | `data/faith.js` |
 
-`PLAN`, `REMINDERS` and the motivation list are read live, so a push is all it takes. `SEED` is copied onto the phone on first run; after changing it, tap **Settings → Reload plan from seed file** to apply it. That replaces your in-app settings and keeps everything you have logged.
+`PLAN`, `REMINDERS` and the motivation list are read live, so a push is all it takes. `SEED` is copied onto the phone on first run; after changing it, tap **Settings → Reload plan from seed file** to apply it. That replaces your in-app plan (extras, workouts) and keeps your goals and everything you have logged.
 
 ## Reminders
 
@@ -57,8 +59,13 @@ index.html              app shell and tab bar
 css/app.css             styles, light and dark
 data/seed.js            the plan (edit this)
 data/motivation.js      quotes and verses (edit this)
-js/store.js             saving, export, import
-js/logic.js             day type, streak, badges, pace
+data/faith.js           saints, Bible books, RSV-2CE notice
+js/store.js             saving, export, import, data upgrades
+js/logic.js             day type, the six daily taps, badges, pace
+js/score.js             month, quarter and year scorecards
+js/share.js             monthly scorecard picture
+js/faith.js             liturgical seasons, saint of the month, reading pace
+js/roadmap.js           the year on one page, and its picture
 js/ui-*.js              one file per tab
 js/ics.js               calendar file for reminders
 sw.js                   offline cache

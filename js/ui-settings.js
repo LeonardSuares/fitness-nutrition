@@ -1,14 +1,17 @@
 import { S, save, exportJSON, importJSON, reloadSeed } from './store.js';
 import { esc, render as rerender, commit, toast, deliverFile } from './core.js';
-import { DAY_NAMES, todayISO, daysBetween, SIZES, SIZE_LABEL } from './logic.js';
+import { DAY_NAMES, todayISO, daysBetween, savingsTarget, SIZES, SIZE_LABEL } from './logic.js';
 import { reminderList, buildICS } from './ics.js';
+import { RSV_NOTICE, SAINTS } from '../data/faith.js';
 
-let page = 'main';        // main | checklist | plan | workouts | workout | reminders
+let page = 'main';        // main | goals | learning | checklist | plan | workouts | workout | reminders
+let next = null;          // page to land on when the tab is next opened
 let listKey = 'home';     // which checklist is being edited
 let wid = null;           // which workout is being edited
 const skipped = new Set(); // reminders unticked before export
 
-export function enter() { page = 'main'; }
+export function enter() { page = next || 'main'; next = null; }
+export function openOn(p) { next = p; }
 
 const back = (title, to = 'main') => `
   <header class="head sub"><button class="btn ghost small" data-act="page" data-page="${to}">‹ Back</button><h1>${title}</h1></header>`;
@@ -39,16 +42,15 @@ function main() {
       <label class="opt">Weigh-in day
         <select data-chg="weighDay">${DAY_NAMES.map((n, i) => `<option value="${i}" ${i === c.weighInDay ? 'selected' : ''}>${n}</option>`).join('')}</select>
       </label>
-      <label class="opt">Target weight (kg)
-        <input type="number" inputmode="decimal" step="0.5" data-chg="targetKg" value="${esc(c.target.weightKg)}">
-      </label>
-      <label class="opt">Target date
-        <input type="date" data-chg="targetDate" value="${esc(c.target.date)}">
-      </label>
     </section>
 
     <section class="card list">
-      ${nav('checklist', 'Edit checklists')}
+      ${nav('goals', `${esc(c.goals.year)} goals`)}
+      ${nav('learning', 'Learning checklist')}
+    </section>
+
+    <section class="card list">
+      ${nav('checklist', 'Edit extras')}
       ${nav('plan', 'Edit weekly workout plan')}
       ${nav('workouts', 'Edit workouts and exercises')}
       ${nav('reminders', 'Reminders')}
@@ -58,6 +60,8 @@ function main() {
       <h2>Motivation</h2>
       <label class="switch"><input type="checkbox" data-chg="mot" data-key="quotes" ${c.motivation.quotes ? 'checked' : ''}><span>Encouraging lines</span></label>
       <label class="switch"><input type="checkbox" data-chg="mot" data-key="verses" ${c.motivation.verses ? 'checked' : ''}><span>Scripture verses</span></label>
+      <label class="switch"><input type="checkbox" data-chg="mot" data-key="saint" ${c.motivation.saint !== false ? 'checked' : ''}><span>Saint of the month</span></label>
+      <label class="switch"><input type="checkbox" data-chg="mot" data-key="season" ${c.motivation.season !== false ? 'checked' : ''}><span>Colour by the liturgical season</span></label>
     </section>
 
     <section class="card">
@@ -68,7 +72,134 @@ function main() {
         <label class="btn soft">Import<input type="file" accept="application/json,.json" data-chg="import" hidden></label>
       </div>
       <button class="btn ghost small" data-act="reseed">Reload plan from seed file</button>
+    </section>
+
+    <section class="card about">
+      <h2>About</h2>
+      <p class="muted">${esc(RSV_NOTICE)}</p>
+      <p class="muted">Saint quotes are from the sources named with each: Vatican texts and the Catechism of the Catholic Church.</p>
     </section>`;
+}
+
+// ── the year's goals ─────────────────────────────────────────────────────────
+// Every field writes straight to S.config.goals at `path` (dots, with numbers
+// for list positions).
+const field = (label, path, value, attrs = '') => `
+  <label class="opt">${label}
+    <input data-chg="goal" data-path="${path}" value="${esc(value ?? '')}" ${attrs}>
+  </label>`;
+const NUM = 'type="number" inputmode="decimal" min="0"';
+const money = (n) => Number(n || 0).toLocaleString();
+
+function goals() {
+  const g = S.config.goals;
+  const quarters = (path, list, attrs) => `<div class="pair">${list.map((v, i) =>
+    field(`Q${i + 1}`, `${path}.${i}`, v, attrs)).join('')}</div>`;
+  const milestones = g.weight.milestones.map((m, i) => `
+    <div class="pair">
+      ${field(`Milestone ${i + 1}, by`, `weight.milestones.${i}.date`, m.date, 'type="date"')}
+      ${field('kg', `weight.milestones.${i}.kg`, m.kg, `${NUM} step="0.5"`)}
+    </div>`).join('');
+
+  return `${back(`${esc(g.year)} goals`)}
+    <p class="muted pad">Change anything, any time. These stay on this phone.</p>
+
+    <section class="card fields">
+      <h2>The year</h2>
+      ${field('Word for the year', 'word', g.word)}
+      ${field('Year verse', 'verseRef', g.verseRef)}
+      <div class="pair">${g.themes.map((t, i) => field(`Q${i + 1} theme`, `themes.${i}`, t)).join('')}</div>
+    </section>
+
+    <section class="card fields">
+      <h2>Weight</h2>
+      <div class="pair">
+        ${field('Starting on', 'weight.startDate', g.weight.startDate, 'type="date"')}
+        ${field('kg', 'weight.startKg', g.weight.startKg, `${NUM} step="0.5"`)}
+      </div>
+      ${milestones}
+    </section>
+
+    <section class="card fields">
+      <h2>Morning workouts a week</h2>
+      ${quarters('fitness.perWeek', g.fitness.perWeek, `${NUM} max="7" step="1"`)}
+    </section>
+
+    <section class="card fields">
+      <h2>Daily rhythm</h2>
+      <div class="pair">
+        ${field('Wake', 'rhythm.wake', g.rhythm.wake, 'type="time"')}
+        ${field('Work', 'rhythm.work', g.rhythm.work, 'type="time"')}
+        ${field('Workout from', 'rhythm.workout', g.rhythm.workout, 'type="time"')}
+        ${field('to', 'rhythm.workoutEnd', g.rhythm.workoutEnd, 'type="time"')}
+        ${field('Prayer from', 'rhythm.prayer', g.rhythm.prayer, 'type="time"')}
+        ${field('to', 'rhythm.prayerEnd', g.rhythm.prayerEnd, 'type="time"')}
+      </div>
+      ${field('Lights out', 'rhythm.lightsOut', g.rhythm.lightsOut, 'type="time"')}
+    </section>
+
+    <section class="card fields">
+      <h2>Eating</h2>
+      <div class="pair">
+        ${field('Meals with protein a day', 'eating.meals', g.eating.meals, `${NUM} max="6" step="1"`)}
+        ${field('Days a week, at least', 'eating.daysPerWeek', g.eating.daysPerWeek, `${NUM} max="7" step="1"`)}
+      </div>
+      ${field('Water: glasses a day (250 ml each)', 'water.glasses', g.water.glasses, `${NUM} max="24" step="1"`)}
+    </section>
+
+    <section class="card fields">
+      <h2>Savings</h2>
+      <p class="muted">Year target: <strong id="save-total">${esc(g.finance.currency)}${money(savingsTarget(S))}</strong>, the four quarters added up.</p>
+      ${quarters('finance.quarters', g.finance.quarters, `${NUM} step="100"`)}
+      <div class="pair">
+        ${field('Currency symbol', 'finance.currency', g.finance.currency, 'maxlength="3"')}
+        ${field('Review the target on', 'finance.reviewDate', g.finance.reviewDate, 'type="date"')}
+      </div>
+      <div class="pair">
+        ${field('Stretch goal', 'finance.stretch.name', g.finance.stretch.name, 'placeholder="Optional"')}
+        ${field('Go or no-go by', 'finance.stretch.decideBy', g.finance.stretch.decideBy, 'type="date"')}
+      </div>
+      <label class="opt">Decision
+        <select data-chg="stretchDecision">${[['', 'Not decided yet'], ['go', 'Go'], ['no', 'Not this year']].map(([v, l]) =>
+          `<option value="${v}" ${v === (g.finance.stretch.decision || '') ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      </label>
+    </section>
+
+    <section class="card fields">
+      <h2>Scripture</h2>
+      ${field('Reading', 'scripture.title', g.scripture.title)}
+      <div class="pair">
+        ${field('From', 'scripture.start', g.scripture.start, 'type="date"')}
+        ${field('To', 'scripture.end', g.scripture.end, 'type="date"')}
+      </div>
+    </section>`;
+}
+
+const MONTH = (i) => new Date(2027, i, 1).toLocaleDateString(undefined, { month: 'long' });
+const WHEN = [
+  ['monthly', 'Every month'], ['quarterly', 'Every quarter'],
+  ...[1, 2, 3, 4].map((q) => [`q${q}`, `Quarter ${q}`]),
+  ...Array.from({ length: 12 }, (_, i) => [`m${i + 1}`, `By the end of ${MONTH(i)}`]),
+];
+
+function learning() {
+  const items = S.config.goals.learning;
+  const rows = items.map((it, i) => `
+    <div class="edit-row">
+      <div class="edit-inputs col">
+        <input data-chg="learn" data-i="${i}" data-f="label" value="${esc(it.label)}" aria-label="Item">
+        <select data-chg="learn" data-i="${i}" data-f="when" aria-label="When">${WHEN.map(([v, label]) =>
+          `<option value="${v}" ${v === it.when ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select>
+      </div>
+      <div class="edit-btns">
+        <button class="x" data-act="moveLearn" data-i="${i}" data-by="-1" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="x" data-act="moveLearn" data-i="${i}" data-by="1" aria-label="Move down" ${i === items.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="x" data-act="delLearn" data-i="${i}" aria-label="Remove">×</button>
+      </div>
+    </div>`).join('');
+  return `${back('Learning')}
+    <p class="muted pad">Each one is a single tick when it is done. “Every month” and “Every quarter” give you a fresh tick each time.</p>
+    <section class="card">${rows}<button class="btn soft" data-act="addLearn">Add item</button></section>`;
 }
 
 function checklist() {
@@ -86,9 +217,10 @@ function checklist() {
         <button class="x" data-act="move" data-i="${i}" data-by="1" aria-label="Move down" ${i === items.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="x" data-act="delItem" data-i="${i}" aria-label="Remove">×</button>
       </div>
-      ${it.kind ? `<p class="hint tight">${{ walk: 'Counts as the day’s activity', workout: 'Shows today’s workout', dinner: 'Shows tonight’s dish', prep: 'Opens Sunday prep' }[it.kind]}</p>` : ''}
+      ${it.kind ? `<p class="hint tight">${{ walk: 'Also counts as the day’s workout', prep: 'Opens Sunday prep' }[it.kind] || ''}</p>` : ''}
     </div>`).join('');
-  return `${back('Checklists')}
+  return `${back('Extras')}
+    <p class="muted pad">The six daily taps are fixed. These optional extras sit under them on Today, folded away, and never count against you.</p>
     <div class="seg wide">${tabs}</div>
     <section class="card">${rows}<button class="btn soft" data-act="addItem">Add item</button></section>`;
 }
@@ -166,7 +298,7 @@ function reminders() {
 }
 
 export function render() {
-  return { main, checklist, plan, workouts, workout, reminders }[page]();
+  return { main, goals, learning, checklist, plan, workouts, workout, reminders }[page]();
 }
 
 // ── actions ──────────────────────────────────────────────────────────────────
@@ -188,6 +320,12 @@ export const actions = {
     if (confirm(`Remove “${items[el.dataset.i].label}”?`)) { items.splice(el.dataset.i, 1); redo(); }
   },
   addItem() { S.config.checklists[listKey].push({ id: uid('item'), time: '', label: 'New item' }); redo(); },
+  moveLearn(el) { swap(S.config.goals.learning, Number(el.dataset.i), Number(el.dataset.by)); redo(); },
+  delLearn(el) {
+    const items = S.config.goals.learning;
+    if (confirm(`Remove “${items[el.dataset.i].label}”?`)) { items.splice(el.dataset.i, 1); redo(); }
+  },
+  addLearn() { S.config.goals.learning.push({ id: uid('learn'), label: 'New item', when: 'q1' }); redo(); },
   editW(el) { wid = el.dataset.id; page = 'workout'; rerender(); window.scrollTo(0, 0); },
   addW() {
     const w = { id: uid('w'), name: 'New workout', kind: 'strength', note: '', sizes: { quick: '5–10 minutes', standard: '15–20 minutes', full: '30+ minutes' }, exercises: [] };
@@ -214,7 +352,7 @@ export const actions = {
     if (how !== 'cancelled') { S.meta.lastExport = todayISO(); redo(); }
   },
   reseed() {
-    if (confirm('Replace your settings (checklists, plan, workouts) with the seed file? Logged days, workouts and weigh-ins are kept.')) {
+    if (confirm('Replace your settings (checklists, plan, workouts) with the seed file? Your goals, logged days, workouts and weigh-ins are kept.')) {
       reloadSeed(); rerender(); toast('Plan reloaded');
     }
   },
@@ -222,9 +360,25 @@ export const actions = {
 
 export const changes = {
   weighDay(el) { S.config.weighInDay = Number(el.value); save(); },
-  targetKg(el) { const v = parseFloat(el.value); if (v > 0) { S.config.target.weightKg = v; save(); } },
-  targetDate(el) { if (el.value) { S.config.target.date = el.value; save(); } },
-  mot(el) { S.config.motivation[el.dataset.key] = el.checked; save(); },
+  goal(el) {
+    const keys = el.dataset.path.split('.');
+    const last = keys.pop();
+    const obj = keys.reduce((o, k) => o[k], S.config.goals);
+    if (el.type === 'number') {
+      const v = parseFloat(el.value);
+      if (!(v >= 0)) { el.value = obj[last]; return; }
+      obj[last] = v;
+    } else if (el.type === 'date' || el.type === 'time') {
+      if (!el.value) { el.value = obj[last]; return; }   // a cleared date keeps the old one
+      obj[last] = el.value;
+    } else obj[last] = el.value.trim();
+    save();
+    const g = S.config.goals;
+    document.getElementById('save-total').textContent = `${g.finance.currency}${money(savingsTarget(S))}`;
+  },
+  stretchDecision(el) { S.config.goals.finance.stretch.decision = el.value; save(); },
+  learn(el) { S.config.goals.learning[el.dataset.i][el.dataset.f] = el.value.trim(); save(); },
+  mot(el) { S.config.motivation[el.dataset.key] = el.checked; save(); if (el.dataset.key === 'season') rerender(); },
   item(el) { S.config.checklists[listKey][el.dataset.i][el.dataset.f] = el.value.trim(); save(); },
   planDay(el) {
     S.config.weeklyPlan[el.dataset.d] = el.value ? { workout: el.value } : { workout: null, rest: true };

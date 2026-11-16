@@ -1,6 +1,7 @@
 // Tiny router, shared helpers, and event delegation.
 import { S, save } from './store.js';
-import { awardBadges } from './logic.js';
+import { awardBadges, RISE_VERSE, todayISO } from './logic.js';
+import { season } from './faith.js';
 
 const mods = {};
 let tab = 'today';
@@ -14,6 +15,8 @@ function current() { return S.meta.firstRunDone ? mods[tab] : mods.welcome; }
 
 export function render() {
   const first = !S.meta.firstRunDone;
+  // The liturgical season tints the accent colour, unless turned off.
+  document.documentElement.dataset.season = S.config.motivation?.season === false ? '' : season(todayISO()).tint;
   document.getElementById('tabs').hidden = first;
   document.getElementById('view').innerHTML = current().render();
   for (const b of document.querySelectorAll('#tabs button')) {
@@ -33,7 +36,15 @@ export function commit({ quiet = false } = {}) {
   const fresh = awardBadges(S);
   save();
   render();
-  if (fresh.length && !quiet) toast(`Badge earned: ${fresh.map((b) => b.name).join(', ')}`);
+  if (quiet) return fresh;
+  if (fresh.some((b) => b.id === 'rise')) {
+    overlay(`
+      <div class="rise-sun" aria-hidden="true">🌅</div>
+      <h2>Rise Again</h2>
+      <p class="overlay-quote">${esc(RISE_VERSE.text)}<br><span class="muted">${esc(RISE_VERSE.ref)} (RSV-2CE)</span></p>
+      <p class="muted">The gap is forgiven. You are here, and that is what counts.</p>
+      <button class="btn primary big-btn" data-act="closeOverlay">Done</button>`);
+  } else if (fresh.length) toast(`Badge earned: ${fresh.map((b) => b.name).join(', ')}`);
   return fresh;
 }
 

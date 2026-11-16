@@ -116,7 +116,7 @@ function finishOverlay(w, fresh) {
       <circle cx="40" cy="40" r="34"/><path d="M25 41l10 10 20-22"/>
     </svg>
     <h2>${esc(w.name)} done</h2>
-    ${m ? `<p class="overlay-quote">${esc(m.text)}${m.ref ? `<br><span class="muted">${esc(m.ref)} (WEB)</span>` : ''}</p>` : ''}
+    ${m ? `<p class="overlay-quote">${esc(m.text)}${m.ref ? `<br><span class="muted">${esc(m.ref)} (RSV-2CE)</span>` : ''}</p>` : ''}
     ${fresh.map((b) => `<p class="badge-new">${b.icon} New badge: ${esc(b.name)}</p>`).join('')}
     <button class="btn primary big-btn" data-act="closeOverlay">Done</button>`);
 }
@@ -144,9 +144,10 @@ export const actions = {
     S.sessions.push({ date: d, workoutId: w.id, size: dr.size, rounds, entries });
 
     const day = getDay(S, d);
-    for (const it of checklistFor(S, d)) {
-      if (w.kind === 'walk' && it.kind === 'walk') { day.checks[it.id] = true; day.walk = true; }
-      if (w.kind !== 'walk' && it.kind === 'workout') day.checks[it.id] = true;
+    day.checks.workout = true;
+    if (w.kind === 'walk') {
+      for (const it of checklistFor(S, d)) if (it.kind === 'walk') day.checks[it.id] = true;
+      day.walk = true;
     }
     S.draft = null;
     const fresh = commit({ quiet: true });

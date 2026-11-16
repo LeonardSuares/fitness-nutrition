@@ -14,13 +14,57 @@ export const SEED = {
     heightCm: 171,
     startWeightKg: 90.5,
   },
-  target: { weightKg: 85, date: '2027-03-31' },
+
+  // The year's goals. Every value is editable under Settings → 2027 goals, and
+  // the phone's copy survives "Reload plan from seed file". Savings amounts and
+  // the stretch goal are left blank here on purpose: they are typed in on the
+  // phone and never stored in this file.
+  goals: {
+    year: 2027,
+    word: 'Perseverance',
+    verseRef: 'Hebrews 12:1-2',
+    themes: ['Foundation', 'Build', 'Push', 'Hold'],   // Q1 … Q4
+    weight: {
+      startKg: 92,
+      startDate: '2027-01-01',
+      milestones: [
+        { date: '2027-03-31', kg: 90 },
+        { date: '2027-06-30', kg: 88 },
+        { date: '2027-09-30', kg: 86 },
+        { date: '2027-12-31', kg: 84 },
+      ],
+    },
+    fitness: { perWeek: [3, 4, 4, 4] },                // morning workouts a week, Q1 … Q4
+    rhythm: {
+      wake: '05:30', workout: '05:40', workoutEnd: '06:10',
+      prayer: '06:30', prayerEnd: '07:30', work: '08:00', lightsOut: '21:30',
+    },
+    eating: { meals: 3, daysPerWeek: 5 },
+    water: { glasses: 12 },                            // 250 ml glasses
+    finance: {
+      currency: '$',
+      quarters: [0, 0, 0, 0],
+      reviewDate: '2027-03-01',
+      stretch: { name: '', decideBy: '2027-02-28', decision: '' },   // decision: '' | 'go' | 'no'
+    },
+    // when: 'monthly' | 'quarterly' | 'm1'…'m12' (due that month) | 'q1'…'q4'
+    learning: [
+      { id: 'pl300', label: 'Renew PL-300', when: 'm2' },
+      { id: 'dp600', label: 'Renew DP-600', when: 'm4' },
+      { id: 'dp700', label: 'Pass DP-700', when: 'q2' },
+      { id: 'ai-cert', label: 'Pass one AI certification', when: 'q4' },
+      { id: 'secplus', label: 'Renew Security+', when: 'm11' },
+      { id: 'project', label: 'Ship a small project', when: 'quarterly' },
+      { id: 'linkedin', label: 'LinkedIn post', when: 'monthly' },
+    ],
+    scripture: { title: 'Ignatius Study Bible', start: '2027-01-01', end: '2027-12-31' },
+  },
 
   // 0 = Sunday … 6 = Saturday. Only the default; one tap on Today changes a day.
   officeDays: [1, 2, 3],
   weighInDay: 6,
 
-  motivation: { quotes: true, verses: true },
+  motivation: { quotes: true, verses: true, saint: true, season: true },
 
   // What an office day asks for: a walk, plus an optional bonus workout.
   officeBonus: 'kettlebell',
@@ -37,46 +81,32 @@ export const SEED = {
     { workout: 'barbell' },          // Saturday (long walk is on the checklist too)
   ],
 
-  // Checklist items. `kind` gives an item special behaviour:
-  //   walk    → counts as the day's activity for the streak
-  //   workout → shows today's workout, opens the Workout tab, ticks itself
-  //   dinner  → shows tonight's dish from the dinner rotation
+  // Extras: the optional items, collapsed on Today under the six daily taps
+  // (workout, prayer, scripture, meals, water, lights out), which are fixed.
+  // `kind` gives an item special behaviour:
+  //   walk    → also counts as the day's workout
   //   prep    → opens the Sunday prep list (use with days: [0])
   // `days` (optional) limits an item to certain weekdays.
   checklists: {
     home: [
-      { id: 'water-wake', time: '6:00', label: 'Water on waking (500 ml)' },
-      { id: 'breakfast', time: '7:30', label: 'Breakfast: 2 boiled eggs, soaked almonds, 1 fruit' },
       { id: 'supps', time: '7:30', label: 'Multivitamin + CoQ10' },
-      { id: 'lunch', time: '12:00', label: 'Lunch shake (Vega + milk) and a fruit' },
       { id: 'walk', time: '12:10', label: 'Walk', kind: 'walk' },
       { id: 'snack', time: '3:00', label: 'Snack: curd and fruit, roasted chana, or a boiled egg' },
       { id: 'psyllium', time: '6:00', label: 'Psyllium in a full glass of water' },
-      { id: 'dinner', time: '6:30', label: 'Dinner', kind: 'dinner' },
-      { id: 'workout', time: '7:45', label: "Today's workout", kind: 'workout' },
       { id: 'night', time: 'Night', label: 'Soak almonds for tomorrow' },
     ],
     office: [
-      { id: 'water-wake', time: '6:00', label: 'Water on waking (500 ml)' },
-      { id: 'breakfast', time: '7:30', label: 'Breakfast at desk: 2 boiled eggs, soaked almonds, 1 fruit' },
       { id: 'supps', time: '7:30', label: 'Multivitamin + CoQ10' },
-      { id: 'lunch', time: '12:00', label: 'Lunch shake (packed shake kit) and a fruit' },
       { id: 'walk', time: '12:10', label: 'Walk', kind: 'walk' },
       { id: 'snack', time: '3:00', label: 'Snack: curd and fruit, roasted chana, or a boiled egg' },
       { id: 'psyllium', time: '6:00', label: 'Psyllium in a full glass of water' },
-      { id: 'dinner', time: '6:30', label: 'Dinner', kind: 'dinner' },
-      { id: 'workout', time: '7:45', label: "Today's workout", kind: 'workout' },
       { id: 'night', time: 'Night', label: 'Pack for tomorrow: eggs, almonds, fruit, shake kit, snack, water bottle' },
     ],
     weekend: [
-      { id: 'water-wake', time: 'Morning', label: 'Water on waking (500 ml)' },
-      { id: 'breakfast', time: 'Morning', label: 'Breakfast' },
       { id: 'supps', time: 'Morning', label: 'Multivitamin + CoQ10' },
-      { id: 'workout', time: 'Daytime', label: "Today's workout", kind: 'workout' },
       { id: 'long-walk', time: 'Daytime', label: 'Long walk', kind: 'walk' },
       { id: 'prep', time: 'Daytime', label: 'Sunday prep', kind: 'prep', days: [0] },
       { id: 'psyllium', time: '6:00', label: 'Psyllium in a full glass of water' },
-      { id: 'dinner', time: '6:30', label: 'Dinner', kind: 'dinner' },
     ],
   },
 
@@ -207,14 +237,16 @@ export const PLAN = {
 
 // ── Calendar reminders (Settings → Reminders) ───────────────────────────────
 // days: 'daily' | 'weekdays' | 'weighin' | 'workout' | [weekday numbers]
+// time: 'HH:MM', or 'rhythm.<name>' to follow a time set under 2027 goals.
 // 'workout' expands to one reminder per workout, on the days it is planned,
 // using each workout's own `reminder` title.
 export const REMINDERS = [
   { id: 'water-am', title: 'Water break. A glass now?', time: '10:00', days: 'weekdays' },
   { id: 'water-pm', title: 'Afternoon water. One more glass', time: '14:00', days: 'weekdays' },
   { id: 'psyllium', title: 'Psyllium time. Full glass of water', time: '18:00', days: 'daily' },
-  { id: 'workout', time: '19:45', days: 'workout' },
+  { id: 'workout', time: 'rhythm.workout', days: 'workout' },
   { id: 'night', title: 'Soak almonds, pack for tomorrow', time: '21:00', days: 'daily' },
+  { id: 'lights', title: 'Start winding down for lights out', time: '21:15', days: 'daily' },
   { id: 'weighin', title: 'Weigh-in morning. Just one number', time: '07:00', days: 'weighin' },
   { id: 'prep', title: 'Sunday prep. Set up an easy week', time: '10:00', days: [0] },
 ];
