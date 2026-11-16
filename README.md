@@ -43,7 +43,7 @@ Data belongs to the home-screen app, separately from Safari. Use **Settings → 
 | Starting values for all of the above | `SEED` in `data/seed.js` |
 | Dinner rotation, Sunday prep list, psyllium rules, protein cheat sheet, daily targets | `PLAN` in `data/seed.js` |
 | Calendar reminders (titles and times) | `REMINDERS` in `data/seed.js` |
-| Encouraging lines and RSV-2CE verses | `data/motivation.js` (keep verse wording exact, under 500 verses) |
+| Encouraging lines and RSV-2CE verses | `data/motivation.js` (keep verse wording exact, under 500 verses). Every verse and saint quote is listed in `VERSES.md` |
 | Saint of the month, Bible books, RSV-2CE notice | `data/faith.js` |
 
 `PLAN`, `REMINDERS` and the motivation list are read live, so a push is all it takes. `SEED` is copied onto the phone on first run; after changing it, tap **Settings → Reload plan from seed file** to apply it. That replaces your in-app plan (extras, workouts) and keeps your goals and everything you have logged.

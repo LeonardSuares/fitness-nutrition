@@ -57,7 +57,7 @@ export const VERSES = [
   { text: 'for while bodily training is of some value, godliness is of value in every way, as it holds promise for the present life and also for the life to come.', ref: '1 Timothy 4:8' },
   { text: 'Commit your work to the LORD, and your plans will be established.', ref: 'Proverbs 16:3' },
   { text: 'Trust in the LORD with all your heart, and do not rely on your own insight. In all your ways acknowledge him, and he will make straight your paths.', ref: 'Proverbs 3:5-6' },
-  { text: 'Whatever your task, work heartily, as serving the Lord and not men,', ref: 'Colossians 3:23' },
+  { text: 'Whatever your task, work heartily, as serving the Lord and not men …', ref: 'Colossians 3:23' },
   { text: 'God is our refuge and strength, a very present help in trouble.', ref: 'Psalm 46:1' },
   { text: 'Be still, and know that I am God.', ref: 'Psalm 46:10' },
   { text: 'for the joy of the LORD is your strength.', ref: 'Nehemiah 8:10' },
